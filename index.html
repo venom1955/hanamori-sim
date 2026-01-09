@@ -1186,7 +1186,7 @@ function fitBoardToPane(){
   const maxTile = Math.floor((availW - (cols-1)*GAP - PAD*2) / cols);
 
   // Clamp tile size for usability
-  const tile = Math.max(52, Math.min(92, maxTile));
+  const tile = Math.max(28, Math.min(92, maxTile));
   const tileH = Math.round(tile * ratioH);
 
   // Apply as CSS variables (layout size truly shrinks; no transform/clip issues)
