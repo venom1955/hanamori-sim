@@ -1,0 +1,1982 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>花御配置シミュレーター v15.3</title>
+  <style>
+    :root{
+      --gap:10px;
+      --tile:92px;
+      --tileH:70px;
+      --bd:#d8d8d8;
+      --muted:#6a6a6a;
+      --shadow: 0 1px 2px rgba(0,0,0,.06);
+
+      --bg:#ffffff;
+      --page:#f4f6f8;
+      --text:#111;
+      --control:#ffffff;
+      --control2:#f3f4f6;
+      --control3:#e9edf3;
+      --board:#f6f7f8;
+      --tileEmpty:#eef2f3;
+
+      --flower:#ffd46a;
+      --flower2:#ffefb6;
+
+      --slot:#d7f0d7;
+      --slotP:#93eef2;
+      --slotOff:#e6e6e6;
+
+      /* Attribute colors */
+      --c-筋力:#ff6a6a; /* red */
+      --c-器用:#4edc76; /* green */
+      --c-体質:#ffb24a; /* orange */
+      --c-知恵:#68d7ff; /* light blue */
+      --c-精神:#b37cff; /* purple */
+
+      --badgeText:#111;
+
+      /* Flower level badge color (changed from green to neutral dark) */
+      --badgeLvlBg:#ffffff;
+      --badgeLvlText:#111111;
+    }
+
+    
+html{ -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html[data-theme="dark"]{
+      --bg:#0f1217;
+      --page:#0b0d10;
+      --board:#151a21;
+      --tileEmpty:#11151b;
+      --bd:rgba(255,255,255,.14);
+      --muted:rgba(255,255,255,.62);
+      --shadow: 0 10px 30px rgba(0,0,0,.38);
+      --text:rgba(255,255,255,.92);
+      --badgeText:#0b0d10;
+      --badgeLvlBg:rgba(255,255,255,.92);
+      --badgeLvlText:#0b0d10;
+    
+      --control: rgba(255,255,255,.07);
+      --control2: rgba(255,255,255,.12);
+      --chipbg: rgba(255,255,255,.08);
+}
+    
+
+    body{ font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif; margin:0; padding:12px; color:var(--text); line-height:1.35; background:var(--page); overflow-x:auto; }
+    h1{ font-size:20px; margin:0 0 6px; }
+    .muted{ color:var(--muted); font-size:12px; }
+    .wrap{ display:grid; gap:var(--gap); grid-template-columns:1fr; }
+    .wrap > *{ min-width:0; }
+    .spanAll{ grid-column: 1 / -1; }
+    @media(min-width:1150px){ .wrap{ grid-template-columns: 420px minmax(0,1fr); align-items:start; } }
+    .card{ background:var(--bg); border:1px solid var(--bd); border-radius:14px; padding:12px; box-shadow:var(--shadow); }
+    .pill{ display:inline-flex; align-items:center; gap:6px; padding:3px 8px; border:1px solid var(--bd); border-radius:999px; font-size:12px; background:#fff;}
+    .row{ display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
+    select,input{ padding:6px 8px; border-radius:12px; border:1px solid var(--bd); background:var(--control); color:var(--text); }
+    input[type="number"]{ width:92px; }
+    button{ padding:10px 12px; border-radius:999px; border:1px solid var(--bd); background:var(--control2); color:var(--text); font-size:14px; font-weight:700; cursor:pointer; box-shadow:0 1px 0 rgba(0,0,0,.03); }
+    button.primary{ border-color:var(--bd); background:#f3f3f3; font-weight:700; }
+    button:active{ transform: translateY(1px); }
+    .btns{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+
+    .two{ display:grid; grid-template-columns: 1fr; gap:14px; }
+    .two > *{ min-width:0; }
+    @media(min-width:1150px){ .two{ grid-template-columns: 1.1fr 0.9fr; } }
+
+    .boardWrap{ overflow-x:auto; overflow-y:hidden; width:100%; max-width:100%; min-width:0; }
+    
+  /* Mobile/iOS: allow rows to grow with native select height (prevents overlap) */
+  .board{ grid-auto-rows: auto; }
+  .tile{ min-height: var(--tileH); }
+  .boardWrap{ -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.board{
+      display:grid;
+      grid-template-columns: repeat(9, var(--tile));
+      grid-auto-rows: var(--tileH);
+      gap: 8px;
+      padding: 8px;
+      background:var(--board);
+      border:1px solid #eee;
+      border-radius:16px;
+    }
+    .tile{
+      border:1px solid var(--bd);
+      border-radius:14px;
+      padding:6px;
+      background:var(--tileEmpty);
+      box-shadow: 0 1px 1px rgba(0,0,0,.04);
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      justify-content:space-between;
+      min-width: var(--tile);
+      position:relative;
+    }
+    .tile.flower{ background: linear-gradient(180deg, var(--flower), var(--flower2)); }
+    .tile.l{ background: var(--slot); }
+    .tile.p{ background: var(--slotP); }
+    .tile.off{ background: var(--slotOff); opacity:.65; }
+
+    .idline{ font-weight:800; font-size:12px; color:var(--text); display:flex; justify-content:space-between; gap:6px; align-items:center;}
+    .idline small{ font-weight:700; color:var(--muted); }
+
+    .tile select{ width:100%; font-size: 10.5px; padding:4px 6px; border-radius:12px; background:var(--control); color:var(--text); }
+    .tile .sub select{ width:auto; min-width:66px; max-width:74px; }
+    .tile .sub .mini{ font-size:10px; white-space:nowrap; }
+    .sub{ font-size:11px; color:var(--muted); display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+html[data-theme="dark"] .tile .sub{ color: rgba(0,0,0,.55); }
+    .mini{ font-size:10px; color:var(--muted); }
+
+    /* Dark theme: tiles are light, so make meta text darker for contrast */
+    html[data-theme="dark"] .tile .mini,
+    html[data-theme="dark"] .tile .sub,
+    html[data-theme="dark"] .tile .idline small{
+      color: rgba(0,0,0,.58);
+    }
+
+    /* flower skill badges (dynamic attribute colors) */
+    .badge{
+      position:absolute;
+      top:6px; left:6px;
+      display:flex; gap:4px;
+      align-items:center;
+      z-index:3;
+    }
+    .sq{
+      width:22px; height:18px;
+      border-radius:6px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:11px; font-weight:900;
+      color:var(--badgeText);
+      box-shadow: 0 1px 1px rgba(0,0,0,.12);
+      border:1px solid color-mix(in srgb, var(--bd) 70%, transparent);
+      background:var(--control);
+    }
+    .sq.attr-筋力{ background: var(--c-筋力); color:#fff;}
+    .sq.attr-器用{ background: var(--c-器用); }
+    .sq.attr-体質{ background: var(--c-体質); }
+    .sq.attr-知恵{ background: var(--c-知恵); }
+    .sq.attr-精神{ background: var(--c-精神); color:#fff;}
+
+    /* Flower level badge (color changed) */
+    .lvl{
+      position:absolute;
+      top:6px; right:6px;
+      width: 22px; height: 22px;
+      border-radius:999px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:10px; font-weight:900;
+      color:var(--badgeLvlText);
+      background: var(--badgeLvlBg);
+      border:1px solid rgba(0,0,0,.10);
+      box-shadow: 0 1px 1px rgba(0,0,0,.10);
+      z-index:3;
+    }
+    .lvl span{ transform: translateY(-.5px); }
+    .lvl .lvtxt{ font-size:9px; opacity:.9; margin-right:2px; }
+
+    /* Rune badge (circle) at top-right in rune tiles */
+    .rbadge{
+      position:absolute;
+      top:6px; right:6px;
+      width:24px; height:24px;
+      border-radius:999px;
+      border:1px solid rgba(0,0,0,.10);
+      box-shadow: 0 1px 1px rgba(0,0,0,.10);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
+      font-size:9px;
+      line-height:1.0;
+      text-align:center;
+      color:#111;
+      background:var(--control);
+      z-index:2;
+      overflow:hidden;
+    }
+    .rbadge .t{ display:flex; flex-direction:column; gap:1px; transform: translateY(-.5px); }
+    .rbadge .t span{ display:block; }
+    .rbadge.single.attr-筋力{ background: var(--c-筋力); color:#fff;}
+    .rbadge.single.attr-器用{ background: var(--c-器用); }
+    .rbadge.single.attr-体質{ background: var(--c-体質); }
+    .rbadge.single.attr-知恵{ background: var(--c-知恵); }
+    .rbadge.single.attr-精神{ background: var(--c-精神); color:#fff;}
+    .rbadge.double{ color:#111; }
+
+    .kpi{ display:grid; grid-template-columns: 160px 1fr; gap:8px; font-size:13px; }
+    .kpi div:nth-child(odd){ color:#444; }
+    .log{ white-space:pre-wrap; font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace; font-size:12px; background:#fafafa; border:1px solid #eee; border-radius:14px; padding:10px; max-height:260px; overflow:auto; }
+
+    table{ border-collapse:collapse; width:100%; font-size:12px; }
+    th,td{ border:1px solid #ddd; padding:6px; text-align:left; }
+    th{ background:#f5f5f5; }
+
+    .ok{ color:#0a7; font-weight:900; }
+    .ng{ color:#d33; font-weight:900; }
+    .warn{ color:#d80; font-weight:900; }
+    .small{ font-size:11px; color:var(--muted); }
+    .hint{ background: #fffdf0; border:1px solid #f0e1a4; padding:8px; border-radius:12px; font-size:12px; }
+
+    .legend{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+    .chip{ display:inline-flex; align-items:center; gap:6px; padding:3px 8px; border-radius:999px; border:1px solid #ddd; background:#fff; font-size:12px;}
+    .dot{ width:12px; height:12px; border-radius:4px; display:inline-block; border:1px solid rgba(0,0,0,.08); }
+    .dot.attr-筋力{ background: var(--c-筋力); }
+    .dot.attr-器用{ background: var(--c-器用); }
+    .dot.attr-体質{ background: var(--c-体質); }
+    .dot.attr-知恵{ background: var(--c-知恵); }
+    .dot.attr-精神{ background: var(--c-精神); }
+  
+    .fcard{
+      border:1px solid #e3e3e3;
+      border-radius:16px;
+      background:#fff;
+      padding:10px 10px 8px;
+      box-shadow: 0 1px 2px rgba(0,0,0,.05);
+    }
+    .fcardHead{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      margin-bottom:6px;
+    }
+    .fcardTitle{
+      font-weight:900;
+      font-size:13px;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:3px 8px;
+      border-radius:999px;
+      border:1px solid #e1e1e1;
+      background:#fafafa;
+      font-size:11px;
+      font-weight:800;
+      color:#333;
+    }
+    .tag.lv{ background:#fff; }
+    .fgrid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:8px;
+    }
+    .skillBox{
+      border:1px solid #ededed;
+      border-radius:14px;
+      padding:8px;
+      background:#fbfbfb;
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap:8px;
+      align-items:center;
+    }
+    .skillName{
+      font-weight:900;
+      font-size:12px;
+    }
+    .skillMeta{
+      font-size:11px;
+      color:#555;
+      margin-top:2px;
+    }
+    .skillLv{
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+      gap:4px;
+      min-width:86px;
+    }
+    .skillLv .big{
+      font-size:18px;
+      font-weight:1000;
+      line-height:1;
+    }
+    .skillLv .next{
+      font-size:11px;
+    }
+
+  
+    /* Hide optional right panels (keep inventory status only) */
+    .optPanel{ display:none !important; }
+
+  
+    .tableWrap{ overflow:auto; max-width:100%; }
+    .nowrap{ white-space:nowrap; }
+
+    /* Table border consistency */
+    table{ border-collapse:collapse; }
+    th,td{ border:1px solid var(--bd); }
+    th{ background:#fafafa; }
+    th.splitL, td.splitL{ border-left:3px solid #b0b0b0 !important; }
+
+    /* Cost table: keep compact */
+    .costWrap{ max-width:420px; margin:0 auto; }
+    .costWrap table{ width:auto !important; }
+    .costTable{ width:auto; }
+
+    #enforceInvWrap{ display:none !important; }
+  
+    .mlAuto{ margin-left:auto; }
+    .ghost{ background:transparent; border:1px solid var(--bd); }
+    .overlay{ position:fixed; inset:0; background:rgba(0,0,0,.18); display:flex; justify-content:flex-end; align-items:flex-start; padding:14px; z-index:999; }
+    .overlay.hidden{ display:none; }
+    .drawerCard{ width:320px; max-width:calc(100vw - 28px); max-height:calc(100vh - 28px); overflow:auto; background:var(--bg); border:1px solid var(--bd); border-radius:14px; padding:12px; box-shadow:var(--shadow); }
+
+
+    /* ---- UI polish (v15.3 UI+) ---- */
+    .page{ max-width:1520px; margin:0 auto; }
+    /* Top KPI bar: treat as read-only status (different from form controls) */
+    .topbar{
+      position:sticky; top:10px; z-index:50;
+      display:flex; flex-wrap:wrap; gap:12px; align-items:center;
+      padding:10px 12px;
+      border:1px solid color-mix(in srgb, var(--bd) 70%, transparent);
+      border-radius:16px;
+      background: color-mix(in srgb, var(--bg) 92%, transparent);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      margin: 10px 0 12px;
+    }
+    .kpiGroup{
+      display:flex; align-items:baseline; gap:8px;
+      padding:2px 0;
+      border:none;
+      background:transparent;
+    }
+    .kpiLabel{ font-size:11px; color:var(--muted); letter-spacing:.02em; }
+    .kpiValue{ font-size:14px; font-weight:900; }
+    .kpiValue.statusOK{ color:#0a7; }
+    .kpiValue.statusWarn{ color:#d80; }
+    .kpiValue.statusNG{ color:#b00020; }
+
+    .statusTag{
+      font-size:11px; font-weight:900;
+      color:var(--muted);
+      padding:4px 10px;
+      border-radius:999px;
+      border:1px dashed color-mix(in srgb, var(--bd) 70%, transparent);
+      background: color-mix(in srgb, var(--bg) 70%, var(--board));
+      user-select:none;
+      pointer-events:none;
+    }
+    .kpiGroup{ cursor:default; user-select:none; pointer-events:none; }
+
+    button{ transition: transform .06s ease, background .15s ease, border-color .15s ease; }
+    button:hover{ background:var(--control2); }
+    button.primary{ background:var(--control2); font-weight:700; }
+    html[data-theme="dark"] button:hover{ background: rgba(255,255,255,.08); }
+    html[data-theme="dark"] button.primary{ background: rgba(255,255,255,.12); }
+
+    .card{ background:var(--bg); }
+    .pill, .chip{ background:var(--control); }
+    html[data-theme="dark"] .pill, html[data-theme="dark"] .chip{ background:rgba(255,255,255,.08); }
+    html[data-theme="dark"] th{ background: rgba(255,255,255,.07); }
+    html[data-theme="dark"] table, html[data-theme="dark"] th, html[data-theme="dark"] td{ border-color: rgba(255,255,255,.12); }
+
+    .wrap{ padding-bottom: 6px; }
+    /* Main layout: controls + board */
+    @media(min-width:1150px){
+      .wrap{ grid-template-columns: 420px minmax(0,1fr); }
+    }
+
+    /* Board + side panel inside the board card */
+    .boardGrid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:12px;
+      align-items:start;
+    }
+    @media(min-width:1150px){
+      .boardGrid{ grid-template-columns: minmax(0,1fr) 320px; }
+    }
+    .sidePanel{
+      border:1px solid color-mix(in srgb, var(--bd) 70%, transparent);
+      border-radius:16px;
+      padding:10px;
+      background: color-mix(in srgb, var(--bg) 94%, transparent);
+    }
+    .sidePanel .pill{ margin-bottom:8px; }
+    .sidePanel table{ font-size:12px; }
+
+    .flash{
+      animation: flash 1.1s ease;
+    }
+    @keyframes flash{
+      0%{ box-shadow: 0 0 0 0 rgba(104,215,255,.0); }
+      30%{ box-shadow: 0 0 0 6px rgba(104,215,255,.22); }
+      100%{ box-shadow: 0 0 0 0 rgba(104,215,255,.0); }
+    }
+
+    /* Make the board card feel more "app-like" */
+    .boardWrap{ border-radius:16px; }
+    .board{ border-color: color-mix(in srgb, var(--bd) 55%, transparent); }
+
+    /* Right side: tighter remain table */
+    .themeCtl{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-left:auto;
+    }
+    .themeBtn{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:7px 10px;
+      border-radius:999px;
+      border:1px solid var(--bd);
+      background:var(--bg);
+      font-weight:800;
+    }
+    .themeBtn .mini{ font-size:11px; color:var(--muted); }
+    .themeBtn .val{ font-size:12px; }
+    .themeBtn .icon{ font-size:14px; }
+
+    /* Detail table grouping for Skill1/Skill2 */
+    .detailGroup th{
+      background: color-mix(in srgb, #f5f5f5 80%, var(--bg));
+      text-align:center;
+      font-weight:900;
+    }
+    html[data-theme="dark"] .detailGroup th{
+      background: rgba(255,255,255,.08);
+    }
+    th.grp1{ border-right:3px solid #b0b0b0 !important; }
+    td.grp1{ border-right:3px solid #b0b0b0 !important; }
+
+
+  
+  /* Layout: make board use full width (move remain panel to left card) */
+  .boardGrid{ display:block; }
+  .remainPanelLeft{ margin-top:10px; padding-top:10px; border-top:1px solid var(--bd); }
+  .remainPanelLeft .tableWrap{ max-height:260px; overflow:auto; }
+  .remainPanelLeft table{ width:100%; border-collapse:separate; border-spacing:0; }
+
+  /* Inventory table readability */
+  #invTable th, #invTable td{ white-space:nowrap; }
+  #invTable th:nth-child(1), #invTable td:nth-child(1){ min-width:140px; }
+  #invTable th:nth-child(4), #invTable td:nth-child(4){ min-width:64px; text-align:center; }
+  #invTable th:nth-child(6), #invTable td:nth-child(6){ min-width:64px; text-align:center; }
+  #invTable input[type="number"]{ width:90px; }
+
+  /* Tile text should stay readable on pastel backgrounds in both themes */
+  .tile{ color:var(--tileText); }
+  .tile .idline{ color:rgba(0,0,0,.55); }
+  .tile select{ background:rgba(255,255,255,.92); color:var(--tileText); border-color:rgba(0,0,0,.18); }
+  .tile .sub{ color:var(--tileMuted); }
+
+  /* Flower name (full) */
+  .fname{
+    margin-top:4px;
+    padding:4px 8px;
+    border-radius:10px;
+    background:rgba(255,255,255,.70);
+    border:1px solid rgba(0,0,0,.10);
+    font-size:12px;
+    font-weight:800;
+    line-height:1.25;
+    white-space:normal;
+    word-break:break-word;
+  }
+
+  
+      .fname-inline{
+        flex:1;
+        min-width:0;
+        font-size:11px;
+        font-weight:800;
+        line-height:1.1;
+        padding:3px 8px;
+        border-radius:999px;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        white-space:nowrap;
+        background: rgba(255,255,255,.55);
+        border:1px solid rgba(0,0,0,.12);
+        color:#0a0d14;
+       display:none!important; pointer-events:none; }
+      .flower-sub{ gap:6px; }
+      .flower-sub select{ width:64px; }
+      [data-theme="dark"] .fname-inline{ background: rgba(255,255,255,.55); border-color: rgba(0,0,0,.12); color:#0a0d14; }
+/* Flower Lv controls: make them pop */
+  .lvRow{
+    margin-top:6px;
+    padding:6px 8px;
+    border-radius:12px;
+    background:rgba(0,0,0,.05);
+    border:1px solid rgba(0,0,0,.08);
+  }
+  .lvRow .lbl{ font-size:11px; font-weight:800; color:rgba(0,0,0,.55); }
+  .lvRow select{ background:rgba(255,255,255,.92); }
+
+  /* Button weight consistency */
+  button{ font-weight:700; }
+  button.primary{ font-weight:900; }
+
+  /* Dark theme: improve contrast for form controls + tables */
+  [data-theme="dark"] .card{ background:rgba(255,255,255,0.06); }
+  [data-theme="dark"] input, 
+  [data-theme="dark"] select{
+    background:rgba(255,255,255,0.08);
+    border-color:rgba(255,255,255,0.18);
+    color:var(--text);
+  }
+
+  [data-theme="dark"] .tile select{ background: rgba(255,255,255,.92); color:#0a0d14; border-color: rgba(0,0,0,.15); }
+  [data-theme="dark"] .tableWrap table{ background:transparent; }
+  [data-theme="dark"] th, [data-theme="dark"] td{ border-color:rgba(255,255,255,0.14); }
+  [data-theme="dark"] .muted{ color:rgba(255,255,255,0.70); }
+
+  /* Keep tiles readable even in dark theme */
+  [data-theme="dark"] .tile{ box-shadow:0 10px 30px rgba(0,0,0,.40); }
+  [data-theme="dark"] .tile .idline{ color:rgba(0,0,0,.55); } /* tile stays light */
+  [data-theme="dark"] .lvRow{ background:rgba(255,255,255,.55); border-color:rgba(0,0,0,.08); }
+  [data-theme="dark"] .lvRow .lbl{ color:rgba(0,0,0,.55); }
+
+
+@media (max-width: 520px){
+  :root{
+    --gap: 8px;
+    --tile: 86px;
+    --tileH: 92px;
+  }
+  .tile .idline{ font-size: 14px; }
+  .tile select, .tile .lv{ font-size: 13px; }
+  .tile .suck{ font-size: 12px; }
+}
+
+</style>
+</head>
+<body>
+  <div class="page">
+  <h1>花御配置シミュレーター v15.3</h1>
+  <div class="topbar">
+      <span class="statusTag">ステータス</span>
+    <div class="kpiGroup">
+      <span class="kpiLabel">総Cost</span>
+      <span class="kpiValue" id="kpiTotalCost">0</span>
+    </div>
+    <div class="kpiGroup">
+      <span class="kpiLabel">モード</span>
+      <span class="kpiValue" id="kpiMode">-</span>
+    </div>
+    <div class="kpiGroup">
+      <span class="kpiLabel">職</span>
+      <span class="kpiValue" id="kpiJob">-</span>
+    </div>
+    <div class="kpiGroup" id="kpiInvGroup" style="display:none;">
+      <span class="kpiLabel">在庫超過</span>
+      <span class="kpiValue statusNG" id="kpiInvStatus">超過あり</span>
+    </div>
+
+    <div class="themeCtl" aria-label="テーマ切替">
+      <button id="themeToggle" type="button" class="themeBtn" title="テーマ切替">
+        <span class="mini">テーマ</span>
+        <span class="val" id="themeLabel">ライト</span>
+        <span class="icon" aria-hidden="true">🌓</span>
+      </button>
+    </div>
+  </div>
+  <div class="wrap" style="margin-top:14px;">
+    <div class="card">
+      <div class="row">
+        <label>モード
+          <select id="modeSel">
+            <option value="free">自由設計</option>
+            <option value="inv">手持ち霊韻のみ</option>
+          </select>
+        </label>
+        <label>職タイプ
+          <select id="jobType">
+            <option value="phys">物理職</option>
+            <option value="mag">魔法職</option>
+          </select>
+        </label>
+        
+      </div>
+
+      <div class="legend">
+        <span class="chip"><span class="dot attr-筋力"></span>筋力</span>
+        <span class="chip"><span class="dot attr-器用"></span>器用</span>
+        <span class="chip"><span class="dot attr-体質"></span>体質</span>
+        <span class="chip"><span class="dot attr-知恵"></span>知恵</span>
+        <span class="chip"><span class="dot attr-精神"></span>精神</span>
+      </div>
+      <div class="small muted" style="margin-top:6px;">
+        職タイプで霊韻候補を自動フィルタ：物理＝筋力/器用/体質、魔法＝知恵/精神/体質
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <button id="btnInvToggle" type="button" class="ghost" title="クリックで開閉" aria-expanded="false">霊韻インベントリ（開く）</button>
+        <label class="pill" id="enforceInvWrap"><input id="enforceInv" type="checkbox" /> 在庫制限を有効化</label>
+      </div>
+      <div id="invSection" style="margin-top:10px; display:none;">
+      <div class="row" style="margin-top:10px; align-items:flex-end; flex-wrap:wrap; gap:10px;">
+                <label>種別
+          <select id="addKind">
+            <option value="single">シングル</option>
+            <option value="double">ダブル</option>
+          </select>
+        </label>
+        <label>属性1
+          <select id="addA1"></select>
+        </label>
+        <label id="addA2Wrap">属性2
+          <select id="addA2"></select>
+        </label>
+        <label>Rank
+          <select id="addRank">
+            <option value="1">R1</option>
+            <option value="2">R2</option>
+          </select>
+        </label>
+        <label>強化
+          <select id="addEnh">
+            <option value="7">+7</option>
+            <option value="8">+8</option>
+            <option value="9">+9</option>
+          </select>
+        </label>
+        <label>個数
+          <input id="addQty" type="number" min="1" step="1" value="1" style="width:90px"/>
+        </label>
+        <button id="btnAddInv" class="primary">一覧に追加</button>
+      </div>
+
+        <div class="tableWrap" style="margin-top:10px;">
+          <table id="invTable">
+          <thead>
+            <tr><th>属性</th><th>Rank</th><th>強化</th><th>種別</th><th>個数</th><th>削除</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        </div>
+      </div>
+
+        <div class="btns">
+          <button id="btnExport">構成をJSON保存</button>
+          <button id="btnImport" class="primary">JSON読み込み</button>
+        </div>
+      
+
+      <div style="margin-top:12px;">
+        <div class="btns">
+          <button id="btnClearRunes">霊韻だけクリア</button>
+          <button id="btnClearFlowers">花御だけクリア</button>
+          <button id="btnResetAll" class="primary">全リセット</button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <div class="remainPanelLeft">
+                  <div class="row" style="margin-bottom:6px;">
+                    <span class="pill">霊韻残数</span>
+                  </div>
+                  <div class="small muted" id="remainSideNote">※「手持ち霊韻のみ」モード時のみ更新</div>
+                  <div class="tableWrap" style="margin-top:8px;">
+                    <table>
+                      <thead>
+                        <tr><th>霊韻</th><th>所持</th><th>使用</th><th>残</th></tr>
+                      </thead>
+                      <tbody id="remainTBodySide"></tbody>
+                    </table>
+                  </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="card">
+      <div class="boardGrid">
+        <div>
+          <div class="row">
+            <span class="pill">F=花御 / L=単体霊韻 / P=共有霊韻</span>
+          </div>
+          <div class="boardWrap" style="margin-top:10px;">
+            <div class="board" id="board"></div>
+          </div>
+        </div>
+</div>
+    </div>
+
+    <div class="card spanAll" style="margin-top:14px;">
+      <div class="row">
+        <span class="pill">花御の詳細</span>
+        
+      </div>
+
+      <div class="tableWrap" style="margin-top:10px;">
+        <table>
+          <thead>
+            <tr class="detailGroup">
+              <th class="nowrap" rowspan="2">枠</th>
+              <th class="nowrap" rowspan="2">花御名</th>
+              <th colspan="4" class="grp1">スキル1</th>
+              <th colspan="4">スキル2</th>
+              <th class="nowrap" rowspan="2">累計Cost</th>
+            </tr>
+            <tr>
+              <th class="nowrap">名前</th>
+              <th class="nowrap">Lv</th>
+              <th class="nowrap">累計属性値</th>
+              <th class="nowrap grp1">次のLvまで</th>
+              <th class="nowrap">名前</th>
+              <th class="nowrap">Lv</th>
+              <th class="nowrap">累計属性値</th>
+              <th class="nowrap">次のLvまで</th>
+            </tr>
+          </thead>
+          <tbody id="detailTBody"></tbody>
+          <tfoot>
+            <tr>
+              <th colspan="10" style="text-align:right;">総Cost（盤面合計：共有は1回のみ）</th>
+              <th id="totalCostUnique">0</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="small" style="margin-top:8px;">
+        ※「累計Cost」は、その花御に影響する霊韻スロットの累計です（共有スロットも花御ごとに加算）。<br/>
+        ※「総Cost」は盤面全体の合計（共有スロットは1回のみ）です。
+      </div>
+
+      
+    </div>
+
+  </div>
+
+  </div>
+
+<script>
+const FLOWERS = [
+  {name:"綿の風鈴", rank:1,   phys:{s1:"会心ダメージ", a1:"器用", s2:"妨害", a2:"筋力"}, mag:{s1:"会心ダメージ", a1:"知恵", s2:"妨害", a2:"精神"}},
+  {name:"熱情のココナッツ", rank:1, phys:{s1:"会心ダメージ", a1:"筋力", s2:"妨害", a2:"体質"}, mag:{s1:"会心ダメージ", a1:"知恵", s2:"妨害", a2:"体質"}},
+  {name:"ホワイトポンポン", rank:2, phys:{s1:"会心ダメージ", a1:"器用", s2:"妨害", a2:"筋力"}, mag:{s1:"会心ダメージ", a1:"知恵", s2:"妨害", a2:"精神"}},
+  {name:"紫露果実", rank:2, phys:{s1:"会心ダメージ", a1:"体質", s2:"妨害", a2:"筋力"}, mag:{s1:"会心ダメージ", a1:"体質", s2:"妨害", a2:"知恵"}},
+  {name:"甘々サクラ", rank:1, phys:{s1:"疾走", a1:"器用", s2:"PvP攻撃補正", a2:"筋力"}, mag:{s1:"疾走", a1:"精神", s2:"PvP攻撃補正", a2:"知恵"}},
+  {name:"うとうと睡蓮", rank:2, phys:{s1:"疾走", a1:"体質", s2:"PvP攻撃補正", a2:"器用"}, mag:{s1:"疾走", a1:"体質", s2:"PvP攻撃補正", a2:"精神"}},
+  {name:"氷魄鈴蘭", rank:2, phys:{s1:"疾走", a1:"筋力", s2:"PvP攻撃補正", a2:"体質"}, mag:{s1:"疾走", a1:"精神", s2:"PvP攻撃補正", a2:"体質"}},
+  /* name fixes */
+  {name:"ラッコルディーニ", rank:1, phys:{s1:"短縮", a1:"筋力", s2:"PvP HP補正", a2:"器用"}, mag:{s1:"短縮", a1:"知恵", s2:"PvP HP補正", a2:"精神"}},
+  {name:"白藍のアジサイ", rank:1, phys:{s1:"短縮", a1:"体質", s2:"PvP HP補正", a2:"器用"}, mag:{s1:"短縮", a1:"体質", s2:"PvP HP補正", a2:"知恵"}},
+  {name:"新生の朝顔", rank:1, phys:{s1:"短縮", a1:"器用", s2:"PvP HP補正", a2:"体質"}, mag:{s1:"短縮", a1:"知恵", s2:"PvP HP補正", a2:"体質"}},
+  {name:"稲荷狐守", rank:2, phys:{s1:"短縮", a1:"筋力", s2:"PvP HP補正", a2:"器用"}, mag:{s1:"短縮", a1:"知恵", s2:"PvP HP補正", a2:"精神"}},
+  {name:"キンカン", rank:1, phys:{s1:"ブロック性能", a1:"体質", s2:"強健", a2:"筋力"}, mag:{s1:"ブロック性能", a1:"体質", s2:"強健", a2:"精神"}},
+  {name:"スイートベリー", rank:1, phys:{s1:"ブロック性能", a1:"器用", s2:"強健", a2:"体質"}, mag:{s1:"ブロック性能", a1:"精神", s2:"強健", a2:"体質"}},
+  {name:"スリーピングキノコ", rank:1, phys:{s1:"ブロック性能", a1:"筋力", s2:"強健", a2:"器用"}, mag:{s1:"ブロック性能", a1:"精神", s2:"強健", a2:"知恵"}},
+];
+
+const ATTRS = ["筋力","器用","体質","知恵","精神"];
+const ATTR_EMOJI = { "筋力":"🏋️", "器用":"🎯", "体質":"❤️", "知恵":"🧠", "精神":"✨" };
+const ATTR_COLOR_VAR = { "筋力":"--c-筋力", "器用":"--c-器用", "体質":"--c-体質", "知恵":"--c-知恵", "精神":"--c-精神" };
+
+const ATTR_COLOR_CACHE = {};
+function getAttrColor(attr){
+  const vname = ATTR_COLOR_VAR[attr];
+  if(!vname) return "";
+  if(ATTR_COLOR_CACHE[vname]) return ATTR_COLOR_CACHE[vname];
+  const v = getComputedStyle(document.documentElement).getPropertyValue(vname).trim();
+  ATTR_COLOR_CACHE[vname] = v;
+  return v;
+}
+
+
+const MAIN_REQ = [
+  {lv:0, need:0},{lv:1, need:75},{lv:2, need:190},{lv:3, need:380},{lv:4, need:605},{lv:5, need:910},
+  {lv:8, need:1215},{lv:8, need:1520},{lv:8, need:1650},{lv:9, need:1800},{lv:10, need:2060},{lv:11, need:2360},{lv:12, need:2520},{lv:13, need:2760},
+];
+const SUB_REQ = [
+  {lv:0, need:0},{lv:1, need:75},{lv:2, need:190},{lv:3, need:380},{lv:4, need:605},{lv:5, need:910},
+  {lv:8, need:1140},{lv:8, need:1365},{lv:8, need:1565},{lv:9, need:1740},
+];
+
+const REIIN = {
+  1: {7:{single:190,double:114}, 8:{single:250,double:144}, 9:{single:340,double:189}},
+  2: {7:{single:290,double:174}, 8:{single:390,double:224}, 9:{single:520,double:289}},
+};
+
+const NODES = [
+  {r:0,c:3,id:"F2.L1",type:"L"}, {r:0,c:4,id:"F2.L2",type:"L"}, {r:0,c:5,id:"F2.L3",type:"L"},
+  {r:1,c:1,id:"F1.L1",type:"L"}, {r:1,c:2,id:"F1.L2",type:"L"}, {r:1,c:3,id:"F1-F2.P1",type:"P"}, {r:1,c:4,id:"F2",type:"F"}, {r:1,c:5,id:"F2-F3.P1",type:"P"}, {r:1,c:6,id:"F3.L1",type:"L"}, {r:1,c:7,id:"F3.L2",type:"L"},
+  {r:2,c:1,id:"F1.L3",type:"L"}, {r:2,c:2,id:"F1",type:"F"}, {r:2,c:3,id:"F1-F2.P2",type:"P"}, {r:2,c:4,id:"F2.L4",type:"L"}, {r:2,c:5,id:"F2-F3.P2",type:"P"}, {r:2,c:6,id:"F3",type:"F"}, {r:2,c:7,id:"F3.L3",type:"L"},
+  {r:3,c:0,id:"F4.L1",type:"L"}, {r:3,c:1,id:"F1-F4.P1",type:"P"}, {r:3,c:2,id:"F1-F4.P2",type:"P"}, {r:3,c:3,id:"F0-F1.P1",type:"P"}, {r:3,c:4,id:"F0.L1",type:"L"}, {r:3,c:5,id:"F0-F3.P1",type:"P"}, {r:3,c:6,id:"F3-F5.P1",type:"P"}, {r:3,c:7,id:"F3-F5.P2",type:"P"}, {r:3,c:8,id:"F5.L1",type:"L"},
+  {r:4,c:0,id:"F4.L2",type:"L"}, {r:4,c:1,id:"F4",type:"F"}, {r:4,c:2,id:"F4.L3",type:"L"}, {r:4,c:3,id:"F0.L2",type:"L"}, {r:4,c:4,id:"F0",type:"F"}, {r:4,c:5,id:"F0.L3",type:"L"}, {r:4,c:6,id:"F5.L2",type:"L"}, {r:4,c:7,id:"F5",type:"F"}, {r:4,c:8,id:"F5.L3",type:"L"},
+  {r:5,c:0,id:"F4.L4",type:"L"}, {r:5,c:1,id:"F4-F6.P1",type:"P"}, {r:5,c:2,id:"F4-F6.P2",type:"P"}, {r:5,c:3,id:"F0-F6.P1",type:"P"}, {r:5,c:4,id:"F0.L4",type:"L"}, {r:5,c:5,id:"F0-F8.P1",type:"P"}, {r:5,c:6,id:"F5-F8.P1",type:"P"}, {r:5,c:7,id:"F5-F8.P2",type:"P"}, {r:5,c:8,id:"F5.L4",type:"L"},
+  {r:6,c:1,id:"F6.L1",type:"L"}, {r:6,c:2,id:"F6",type:"F"}, {r:6,c:3,id:"F6-F7.P1",type:"P"}, {r:6,c:4,id:"F7.L1",type:"L"}, {r:6,c:5,id:"F7-F8.P1",type:"P"}, {r:6,c:6,id:"F8",type:"F"}, {r:6,c:7,id:"F8.L1",type:"L"},
+  {r:7,c:1,id:"F6.L2",type:"L"}, {r:7,c:2,id:"F6.L3",type:"L"}, {r:7,c:3,id:"F6-F7.P2",type:"P"}, {r:7,c:4,id:"F7",type:"F"}, {r:7,c:5,id:"F7-F8.P2",type:"P"}, {r:7,c:6,id:"F8.L2",type:"L"}, {r:7,c:7,id:"F8.L3",type:"L"},
+  {r:8,c:3,id:"F7.L2",type:"L"}, {r:8,c:4,id:"F7.L3",type:"L"}, {r:8,c:5,id:"F7.L4",type:"L"},
+];
+
+const FLOWER_IDS = ["F0","F1","F2","F3","F4","F5","F6","F7","F8"];
+const OFFSETS = [
+  {dr:-1,dc:0, dir:"U"}, {dr:1,dc:0, dir:"D"}, {dr:0,dc:-1, dir:"L"}, {dr:0,dc:1, dir:"R"},
+  {dr:-1,dc:-1, dir:"UL"}, {dr:-1,dc:1, dir:"UR"}, {dr:1,dc:-1, dir:"DL"}, {dr:1,dc:1, dir:"DR"},
+];
+
+function enabledDirsByFlowerLevel(lv){
+  const set = new Set(["U","D","L","R"]);
+  if (lv >= 3) set.add("UL");
+  if (lv >= 5) set.add("UR");
+  if (lv >= 7) set.add("DL");
+  if (lv >= 9) set.add("DR");
+  return set;
+}
+
+const boardEl = document.getElementById("board");
+const jobTypeEl = document.getElementById("jobType");
+const modeSelEl = document.getElementById("modeSel");
+
+const enforceInvEl = document.getElementById("enforceInv");
+  const btnInvToggleEl = document.getElementById("btnInvToggle");
+  const invSectionEl = document.getElementById("invSection");
+  let invSectionOpen = true;
+const enforceInvWrapEl = document.getElementById("enforceInvWrap");
+const runeSearchEl = document.getElementById("runeSearch");
+
+const addKindEl = document.getElementById("addKind");
+const addA1El = document.getElementById("addA1");
+const addA2Wrap = document.getElementById("addA2Wrap");
+const addA2El = document.getElementById("addA2");
+const addRankEl = document.getElementById("addRank");
+const addEnhEl = document.getElementById("addEnh");
+const addQtyEl = document.getElementById("addQty");
+
+
+const remainTBodySide = document.getElementById("remainTBodySide");
+const remainSideNote = document.getElementById("remainSideNote");
+
+const kpiTotalCostEl = document.getElementById("kpiTotalCost");
+const kpiModeEl = document.getElementById("kpiMode");
+const kpiJobEl = document.getElementById("kpiJob");
+const kpiInvGroupEl = document.getElementById("kpiInvGroup");
+const kpiInvStatusEl = document.getElementById("kpiInvStatus");
+const themeToggleEl = document.getElementById("themeToggle");
+const themeLabelEl = document.getElementById("themeLabel");
+const logEl = document.getElementById("log");
+const flowerCardsEl = document.getElementById("flowerCards");
+const invTBody = document.querySelector("#invTable tbody");
+
+const detailTBody = document.getElementById("detailTBody");
+const totalCostUniqueEl = document.getElementById("totalCostUnique");
+
+const nodeByPos = new Map(NODES.map(n=>[`${n.r}-${n.c}`, n]));
+const nodeById  = new Map(NODES.map(n=>[n.id, n]));
+
+const absorbMap = new Map();
+function buildAbsorbMap(){
+  absorbMap.clear();
+  for (const fid of FLOWER_IDS){
+    const fnode = nodeById.get(fid);
+    if (!fnode) continue;
+    const mp = {};
+    for (const off of OFFSETS){
+      const key = `${fnode.r + off.dr}-${fnode.c + off.dc}`;
+      const n = nodeByPos.get(key);
+      if (n && n.type !== "F"){
+        mp[off.dir] = n.id;
+      }
+    }
+    absorbMap.set(fid, mp);
+  }
+}
+buildAbsorbMap();
+
+const state = {
+  flowers: Object.fromEntries(FLOWER_IDS.map(id=>[id,""])),
+  flowerLv: Object.fromEntries(FLOWER_IDS.map(id=>[id,9])),
+  runes: {},
+  inv: [],
+};
+
+function log(msg){
+  if (!logEl) return;
+  if (logEl.textContent === "-") logEl.textContent = "";
+  logEl.textContent += (logEl.textContent ? "\n" : "") + msg;
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function allowedAttrsByJob(job){
+  return job === "phys" ? ["筋力","器用","体質"] : ["知恵","精神","体質"];
+}
+
+function fillSelect(sel, values, selected){
+  sel.innerHTML = "";
+  for (const v of values){
+    const opt = document.createElement("option");
+    opt.value = v;
+    opt.textContent = v;
+    if (selected && selected===v) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
+
+function updateAddForm(){
+  const job = jobTypeEl.value;
+  const allowed = allowedAttrsByJob(job);
+  const kind = addKindEl.value;
+
+  // Attr1
+  const curA1 = addA1El.value || allowed[0];
+  fillSelect(addA1El, allowed, curA1);
+
+  // Attr2 for double
+  if (kind === "double"){
+    addA2Wrap.style.display = "";
+    addA2Wrap.style.visibility = "";
+    addA2Wrap.style.pointerEvents = "";
+    const a1 = addA1El.value;
+    const allowed2 = allowed.filter(a => a !== a1);
+    const curA2 = allowed2.includes(addA2El.value) ? addA2El.value : allowed2[0];
+    fillSelect(addA2El, allowed2, curA2);
+    addA2El.disabled = false;
+  } else {
+    // keep layout width so the add button doesn't jump between single/double
+    addA2Wrap.style.display = "";
+    addA2Wrap.style.visibility = "hidden";
+    addA2Wrap.style.pointerEvents = "none";
+    addA2El.disabled = true;
+  }
+}
+
+
+
+function canonPair(a,b){ return [a,b].sort().join("+"); }
+function attrClass(attr){ return `attr-${attr}`; }
+
+function runeKey(spec){
+  if (spec.kind==="single"){
+    return `${spec.kind}|${spec.attrs[0]}|R${spec.rank}|+${spec.enh}`;
+  }
+  return `${spec.kind}|${canonPair(spec.attrs[0], spec.attrs[1])}|R${spec.rank}|+${spec.enh}`;
+}
+
+function runeValueSingle(rank, enh){ return REIIN[rank]?.[enh]?.single ?? 0; }
+function runeValueDouble(rank, enh){ return REIIN[rank]?.[enh]?.double ?? 0; }
+
+const RUNE_COST = {
+  1: {7:47, 8:94, 9:188},
+  2: {7:100, 8:200, 9:400},
+};
+function runeCost(rank, enh){
+  return (RUNE_COST[rank] && RUNE_COST[rank][enh]) ? RUNE_COST[rank][enh] : 0;
+}
+
+function labelFromRuneKey(k){
+  // k: "single|筋力|R1|+7" or "double|筋力+器用|R2|+9"
+  const parts = String(k||"").split("|");
+  if (parts.length < 4) return k;
+  const kind = parts[0];
+  const attrs = parts[1];
+  const rank = parts[2].replace(/^R/,"");
+  const enh  = parts[3].replace(/^\+/,"");
+  const kindMark = (kind==="single") ? "S" : "D";
+  return `${attrs} R${rank} +${enh} ${kindMark}`;
+}
+
+function renderRemainTableInto(tbody){
+  if (!tbody) return;
+
+  const invModeNow = (modeSelEl && modeSelEl.value === "inv");
+  const enforceNow = invModeNow; // 手持ち霊韻のみモード時は常時更新
+
+  tbody.innerHTML = "";
+  if (!enforceNow){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="4" class="small">（手持ち霊韻のみモード時に表示）</td>`;
+    tbody.appendChild(tr);
+    return {status:"off", over:false, empty:false};
+  }
+
+  const have = new Map();
+  for (const it of state.inv){
+    const qty = Number(it.qty || 0);
+    if (qty <= 0) continue;
+    const k = runeKey(it);
+    have.set(k, (have.get(k) || 0) + qty);
+  }
+
+  const used = new Map();
+  for (const spec of Object.values(state.runes)){
+    if (!spec) continue;
+    const k = runeKey(spec);
+    used.set(k, (used.get(k) || 0) + 1);
+  }
+
+  const keys = Array.from(new Set([...have.keys(), ...used.keys()])).sort();
+  if (keys.length===0){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="4" class="small">（-）</td>`;
+    tbody.appendChild(tr);
+    return {status:"empty", over:false, empty:true};
+  }
+
+  let over = false;
+  for (const k of keys){
+    const h = have.get(k) || 0;
+    const u = used.get(k) || 0;
+    const r = h - u;
+    if (r < 0) over = true;
+    const tr = document.createElement("tr");
+    const warnStyle = (r < 0) ? ' style="color:#b00020; font-weight:800;"' : '';
+    tr.innerHTML = `
+      <td class="nowrap">${labelFromRuneKey(k)}</td>
+      <td>${h}</td>
+      <td>${u}</td>
+      <td${warnStyle}>${r}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+  return {status:"on", over, empty:false};
+}
+
+function renderRemainTable(){
+  const r = renderRemainTableInto(remainTBodySide);
+
+  // Side note
+  const invModeNow = (modeSelEl && modeSelEl.value === "inv");
+  if (remainSideNote){
+    remainSideNote.textContent = invModeNow
+      ? "※「手持ち霊韻のみ」モード時のみ更新"
+      : "※「手持ち霊韻のみ」モードで表示";
+  }
+
+  // KPI inventory: show ONLY when over (avoid noisy "未登録" in header)
+  if (kpiInvGroupEl){
+    kpiInvGroupEl.style.display = (invModeNow && r?.over) ? "" : "none";
+  }
+  if (kpiInvStatusEl){
+    kpiInvStatusEl.textContent = "超過あり";
+  }
+}
+
+
+function updateInvToggleLabel(){
+  if (!btnInvToggleEl) return;
+  const invModeNow = (modeSelEl && modeSelEl.value === "inv");
+  if (!invModeNow){
+    btnInvToggleEl.textContent = "霊韻インベントリ";
+    btnInvToggleEl.setAttribute("aria-expanded","false");
+    return;
+  }
+  const open = !!invSectionOpen;
+  btnInvToggleEl.textContent = open ? "霊韻インベントリ（閉じる）" : "霊韻インベントリ（開く）";
+  btnInvToggleEl.setAttribute("aria-expanded", open ? "true" : "false");
+}
+
+function updateTopbar(){
+  if (kpiModeEl && modeSelEl){
+    kpiModeEl.textContent = (modeSelEl.value === "inv") ? "手持ち霊韻のみ" : "自由設計";
+  }
+  if (kpiJobEl && jobTypeEl){
+    kpiJobEl.textContent = (jobTypeEl.value === "mag") ? "魔法職" : "物理職";
+  }
+  // total cost is updated by recalc; keep a safe fallback
+  if (kpiTotalCostEl && totalCostUniqueEl){
+    kpiTotalCostEl.textContent = totalCostUniqueEl.textContent;
+  }
+  updateInvToggleLabel();
+}
+
+let __runeOptRAF = 0;
+function updateRuneOptions(){
+  // モード/職タイプ変更時に霊韻リスト(盤面含む)を作り直して即時反映
+  if (__runeOptRAF) cancelAnimationFrame(__runeOptRAF);
+  __runeOptRAF = requestAnimationFrame(()=>{
+    __runeOptRAF = 0;
+    try { buildBoard(); } catch(e){}
+    try { recalc(); } catch(e){}
+  });
+}
+
+function cssVarValue(varName){
+  return getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || "#fff";
+}
+
+function badgeStyle(b){
+  const text = {top:`R${b.rank}`, bot:`+${b.enh}`};
+  if (b.kind==="single"){
+    return {cls:`single ${attrClass(b.a1)}`, style:"", text};
+  }
+  const c1 = cssVarValue(ATTR_COLOR_VAR[b.a1]);
+  const c2 = cssVarValue(ATTR_COLOR_VAR[b.a2]);
+  return {cls:`double`, style:`background: linear-gradient(135deg, ${c1} 0 50%, ${c2} 50% 100%);`, text};
+}
+
+function runeOptions(job, q){
+  const allowed = allowedAttrsByJob(job);
+  const opts = [];
+
+  for (const attr of allowed){
+    for (const rank of [1,2]){
+      for (const enh of [7,8,9]){
+        const val = runeValueSingle(rank, enh);
+        const short = `R${rank} ${attr} +${enh} (${val})`;
+        const spec = {kind:"single", attrs:[attr], rank, enh};
+        opts.push({key:runeKey(spec), spec, short, badge:{kind:"single", a1:attr, a2:null, rank, enh}});
+      }
+    }
+  }
+
+  for (let i=0;i<allowed.length;i++){
+    for (let j=i+1;j<allowed.length;j++){
+      const a1 = allowed[i], a2 = allowed[j];
+      for (const rank of [1,2]){
+        for (const enh of [7,8,9]){
+          const val = runeValueDouble(rank, enh);
+          const short = `R${rank} ${a1}+${a2} +${enh} (${val}×2)`;
+          const spec = {kind:"double", attrs:[a1,a2], rank, enh};
+          opts.push({key:runeKey(spec), spec, short, badge:{kind:"double", a1, a2, rank, enh}});
+        }
+      }
+    }
+  }
+
+  // mode=inv: filter options to inventory-only (qty>0)
+  let res = opts;
+  if (modeSelEl && modeSelEl.value === "inv"){
+    const keys = new Set(state.inv.filter(it=>Number(it.qty||0)>0).map(it => runeKey(it)));
+    res = res.filter(o => keys.has(o.key));
+  }
+
+  const qq = (q||"").trim().toLowerCase();
+  if (!qq) return res;
+  return res.filter(o => o.short.toLowerCase().includes(qq));
+}
+
+/* Flower options without duplicates:
+   For each F slot: show (花御なし) + (current selection if any) + (not-selected flowers) */
+function selectedFlowerNames(){
+  const set = new Set();
+  for (const fid of FLOWER_IDS){
+    const v = state.flowers[fid];
+    if (v) set.add(v);
+  }
+  return set;
+}
+
+
+function fitBoardToPane(){
+  // Resize tile size so the 9x9 board fits the available width without being clipped
+  const wrap = document.querySelector('.boardWrap');
+  if (!wrap) return;
+
+  // Measure available width inside the wrap
+  const availW = Math.max(0, wrap.clientWidth - 2);
+  if (!availW) return;
+
+  // Board sizing constants (must match CSS: gap=8, padding=8)
+  const GAP = 8;
+  const PAD = 8;
+  const cols = 9;
+
+  // Current base ratio between tile width and height (70/92 ≒ 0.761)
+  const ratioH = 70/92;
+
+  // Compute tile width to fit: availW >= cols*tile + (cols-1)*GAP + PAD*2
+  const maxTile = Math.floor((availW - (cols-1)*GAP - PAD*2) / cols);
+
+  // Clamp tile size for usability
+  const tile = Math.max(52, Math.min(92, maxTile));
+  const tileH = Math.round(tile * ratioH);
+
+  // Apply as CSS variables (layout size truly shrinks; no transform/clip issues)
+  wrap.style.setProperty('--tile', tile + 'px');
+  wrap.style.setProperty('--tileH', tileH + 'px');
+}
+window.addEventListener('resize', () => {
+  // Defer to allow layout to settle
+  window.requestAnimationFrame(fitBoardToPane);
+});
+
+function buildBoard(lastComputed){
+  const job = jobTypeEl.value;
+  const q = (runeSearchEl ? runeSearchEl.value : "");
+  boardEl.innerHTML = "";
+
+  const opts = runeOptions(job, q);
+
+  const invMode = (modeSelEl && modeSelEl.value === "inv");
+  const enforceInv = invMode && enforceInvEl.checked;
+
+  // Inventory-aware option disabling: prevent selecting beyond qty in inv mode
+  const have = new Map();
+  if (enforceInv){
+    for (const it of state.inv){
+      const qty = Number(it.qty || 0);
+      if (qty <= 0) continue;
+      const k = runeKey(it);
+      have.set(k, (have.get(k) || 0) + qty);
+    }
+  }
+  const used = new Map();
+  if (enforceInv){
+    for (const [slotId, spec] of Object.entries(state.runes)){
+      if (!spec) continue;
+      const k = runeKey(spec);
+      used.set(k, (used.get(k) || 0) + 1);
+    }
+  }
+
+  const optByKey = new Map(opts.map(o=>[o.key,o]));
+  const selected = selectedFlowerNames();
+
+  for (let r=0;r<9;r++){
+    for (let c=0;c<9;c++){
+      const n = nodeByPos.get(`${r}-${c}`);
+      if (!n){
+        const ph = document.createElement("div");
+        ph.style.minWidth = "var(--tile)";
+        ph.style.minHeight = "var(--tileH)";
+        ph.style.opacity = "0";
+        boardEl.appendChild(ph);
+        continue;
+      }
+
+      const tile = document.createElement("div");
+      tile.className = "tile " + (n.type==="F" ? "flower" : n.type==="L" ? "l" : "p");
+
+      if (n.type !== "F" && lastComputed?.slotActive){
+        const active = lastComputed.slotActive.get(n.id) || false;
+        if (!active) tile.classList.add("off");
+      }
+
+      const head = document.createElement("div");
+      head.className = "idline";
+      head.innerHTML = `<span>${n.id}</span><small>${n.type}</small>`;
+      tile.appendChild(head);
+
+      if (n.type === "F"){
+        const badge = document.createElement("div");
+        badge.className = "badge";
+
+        const info = lastComputed?.flowerSkillLv?.[n.id] || {s1:"-",s2:"-"};
+        const a1 = lastComputed?.flowerAttrs?.[n.id]?.a1 || "";
+        const a2 = lastComputed?.flowerAttrs?.[n.id]?.a2 || "";
+
+        const s1 = document.createElement("div"); s1.className = "sq " + (a1?attrClass(a1):""); s1.textContent = info.s1 ?? "-";
+        const s2 = document.createElement("div"); s2.className = "sq " + (a2?attrClass(a2):""); s2.textContent = info.s2 ?? "-";
+        badge.appendChild(s1); badge.appendChild(s2);
+        tile.appendChild(badge);
+
+        const lvl = document.createElement("div");
+        lvl.className = "lvl";
+        lvl.innerHTML = `<span><span class="lvtxt">Lv</span>${state.flowerLv[n.id]}</span>`;
+        tile.appendChild(lvl);
+
+        const current = state.flowers[n.id] || "";
+        const sel = document.createElement("select");
+        sel.id = "rsel_" + n.id;
+
+        const o0 = document.createElement("option");
+        o0.value = ""; o0.textContent = "(花御なし)";
+        sel.appendChild(o0);
+
+        // Build list: keep current even if selected elsewhere (shouldn't happen after logic),
+        // and exclude selected flowers from other slots.
+        for (const f of FLOWERS){
+          const isSelectedSomewhere = selected.has(f.name);
+          const isCurrent = (f.name === current);
+          if (isSelectedSomewhere && !isCurrent) continue;
+
+          const o = document.createElement("option");
+          o.value = f.name;
+          o.textContent = `${f.name}（R${f.rank}）`;
+          sel.appendChild(o);
+        }
+
+        sel.value = current;
+        sel.addEventListener("change", ()=>{
+          state.flowers[n.id] = sel.value;
+
+          // Extra safety: if user somehow created duplicates (e.g., via import),
+          // auto-clear the same flower from other slots.
+          if (sel.value){
+            for (const fid of FLOWER_IDS){
+              if (fid === n.id) continue;
+              if (state.flowers[fid] === sel.value){
+                state.flowers[fid] = "";
+              }
+            }
+          }
+          recalc();
+        });
+        tile.appendChild(sel);
+    // 花御名は「Lv選択と同じ行」に省略表示（高さを増やさず、Lvが埋もれないようにする）
+    const lvRow = document.createElement("div");
+    lvRow.className = "sub flower-sub";
+
+    const lvSel = document.createElement("select");
+    [1,3,5,7,9].forEach(v=>{
+      const o = document.createElement("option");
+      o.value = String(v);
+      o.textContent = "Lv " + String(v);
+      lvSel.appendChild(o);
+    });
+    lvSel.value = String(state.flowerLv[n.id]||9);
+    lvSel.addEventListener("change",()=>{ state.flowerLv[n.id]=Number(lvSel.value)||9; recalc(); });
+    lvRow.appendChild(lvSel);
+    tile.appendChild(lvRow);
+
+    // 表示更新（選択名の追従）
+    sel.addEventListener("change",()=>{
+      fn.textContent = sel.value || "";
+      fn.title = fn.textContent;
+      fn.style.display = sel.value ? "block" : "none";
+    });
+      } else {
+        const currentSpec = state.runes[n.id];
+        if (currentSpec){
+          const b = {kind: currentSpec.kind, a1: currentSpec.attrs[0], a2: currentSpec.kind==="double"? currentSpec.attrs[1] : null, rank: currentSpec.rank, enh: currentSpec.enh};
+          const {cls, style, text} = badgeStyle(b);
+          const bd = document.createElement("div");
+          bd.className = `rbadge ${cls}`;
+          if (style) bd.setAttribute("style", style);
+          bd.innerHTML = `<div class="t"><span>${text.top}</span><span>${text.bot}</span></div>`;
+          tile.appendChild(bd);
+        }
+
+        const sel = document.createElement("select");
+        const o0 = document.createElement("option");
+        o0.value = ""; o0.textContent = "(霊韻なし)";
+        sel.appendChild(o0);
+
+        const currentKey = currentSpec ? runeKey(currentSpec) : "";
+        let currentStillVisible = false;
+
+        for (const opt of opts){
+          const o = document.createElement("option");
+          o.value = opt.key;
+          o.textContent = opt.short;
+          if (enforceInv){
+            const h = have.get(opt.key) || 0;
+            const u = used.get(opt.key) || 0;
+            const remaining = h - u + ((opt.key === currentKey) ? 1 : 0);
+            if (remaining <= 0 && opt.key !== currentKey){
+              o.disabled = true;
+              o.textContent += "（在庫0）";
+            } else {
+              o.textContent += `（残${remaining}）`;
+            }
+          }
+          // colorize option text by first attribute
+          const a0 = opt.spec?.attrs?.[0];
+          const c0 = getAttrColor(a0);
+          if(c0) o.style.color = c0;
+          if(opt.spec?.kind==="double"){
+            const c1 = getAttrColor(opt.spec.attrs?.[0]);
+            const c2 = getAttrColor(opt.spec.attrs?.[1]);
+            if(c1 && c2){
+              o.style.backgroundImage = `linear-gradient(90deg, ${c1} 0%, ${c1} 50%, ${c2} 50%, ${c2} 100%)`;
+              o.style.color = "#111";
+            }
+          }
+          if(opt.spec?.rank===2) o.style.fontWeight = "700";
+          if (o.value === currentKey) currentStillVisible = true;
+          sel.appendChild(o);
+        }
+
+        if (currentKey && !currentStillVisible){
+          const cs = currentSpec;
+          const val = (cs.kind==="single") ? runeValueSingle(cs.rank, cs.enh) : runeValueDouble(cs.rank, cs.enh);
+          const short = (cs.kind==="single")
+            ? `R${cs.rank} ${cs.attrs[0]} +${cs.enh} (${val})（フィルタ外）`
+            : `R${cs.rank} ${cs.attrs[0]}+${cs.attrs[1]} +${cs.enh} (${val}×2)（フィルタ外）`;
+          const o = document.createElement("option");
+          o.value = currentKey;
+          o.textContent = short;
+          const c0 = getAttrColor(cs.attrs?.[0]);
+          if(c0) o.style.color = c0;
+          if(cs.kind==="double"){
+            const c1 = getAttrColor(cs.attrs?.[0]);
+            const c2 = getAttrColor(cs.attrs?.[1]);
+            if(c1 && c2){
+              o.style.backgroundImage = `linear-gradient(90deg, ${c1} 0%, ${c1} 50%, ${c2} 50%, ${c2} 100%)`;
+              o.style.color = "#111";
+            }
+          }
+          if(cs.kind==="double") o.style.fontWeight = "700";
+          sel.appendChild(o);
+        }
+
+        sel.value = currentKey || "";
+        sel.addEventListener("change", ()=>{
+          const key = sel.value;
+          const invModeNow = (modeSelEl && modeSelEl.value === "inv");
+          const enforceNow = invModeNow; // 手持ち霊韻のみモード時は常時更新
+
+          const currentSpec2 = state.runes[n.id];
+          const currentKey2 = currentSpec2 ? runeKey(currentSpec2) : "";
+
+          if (!key) { delete state.runes[n.id]; recalc(); return; }
+
+          // Hard guard: in inventory mode with enforcement, block selections that exceed qty.
+          if (enforceNow){
+            const have2 = new Map();
+            for (const it of state.inv){
+              const qty = Number(it.qty || 0);
+              if (qty <= 0) continue;
+              const k = runeKey(it);
+              have2.set(k, (have2.get(k) || 0) + qty);
+            }
+            const used2 = new Map();
+            for (const spec of Object.values(state.runes)){
+              if (!spec) continue;
+              const k = runeKey(spec);
+              used2.set(k, (used2.get(k) || 0) + 1);
+            }
+            // remove current slot consumption
+            if (currentKey2){
+              used2.set(currentKey2, (used2.get(currentKey2) || 0) - 1);
+            }
+            const h = have2.get(key) || 0;
+            const u = used2.get(key) || 0;
+            if (u + 1 > h){
+              alert("在庫数を超えるため、この霊韻はこれ以上設置できません。");
+              sel.value = currentKey2 || "";
+              return;
+            }
+          }
+
+          const opt = optByKey.get(key);
+          if (!opt) { alert("内部エラー：霊韻が見つからない"); return; }
+          state.runes[n.id] = opt.spec;
+          recalc();
+        });
+        tile.appendChild(sel);
+
+        const sub = document.createElement("div");
+        sub.className = "mini";
+        if (lastComputed?.slotConsumers){
+          const consumers = lastComputed.slotConsumers.get(n.id) || [];
+          sub.textContent = consumers.length ? `吸い取り：${consumers.join(",")}` : "吸い取り：なし";
+        } else {
+          sub.textContent = n.type==="P" ? "共有スロット" : "単体スロット";
+        }
+        tile.appendChild(sub);
+      }
+
+      boardEl.appendChild(tile);
+    }
+  }
+}
+
+function buildInvTable(){
+  if (!invTBody) return; // inv UI is hidden/absent outside 手持ち霊韻のみ
+  invTBody.innerHTML = "";
+  if (state.inv.length===0){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="6" class="small">（在庫は未登録。必要なら「霊韻を追加」）</td>`;
+    invTBody.appendChild(tr);
+    return;
+  }
+  state.inv.forEach((it, idx)=>{
+    const attrLabel = (it.kind==="single") ? `${ATTR_EMOJI[it.attrs[0]]??""} ${it.attrs[0]}`
+      : `${ATTR_EMOJI[it.attrs[0]]??""}${it.attrs[0]} + ${ATTR_EMOJI[it.attrs[1]]??""}${it.attrs[1]}`;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${attrLabel}</td>
+      <td>R${it.rank}</td>
+      <td>+${it.enh}</td>
+      <td>${it.kind==="single"?"シングル":"ダブル"}</td>
+      <td><input type="number" min="0" step="1" value="${it.qty}" data-idx="${idx}" style="width:80px"/></td>
+      <td><button data-del="${idx}">削除</button></td>`;
+    invTBody.appendChild(tr);
+  });
+
+  invTBody.querySelectorAll("input[type=number]").forEach(inp=>{
+    inp.addEventListener("change", ()=>{
+      const idx = Number(inp.dataset.idx);
+      state.inv[idx].qty = Math.max(0, Number(inp.value||0));
+      recalc();
+    });
+  });
+  invTBody.querySelectorAll("button[data-del]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const idx = Number(btn.dataset.del);
+      state.inv.splice(idx,1);
+      buildInvTable();
+      recalc();
+    });
+  });
+}
+
+function levelFromPoints(points, reqTable){
+  let lv = 0;
+  for (const row of reqTable) if (points >= row.need) lv = row.lv;
+  const nextRow = reqTable.find(r=>r.lv===lv+1);
+  const nextNeed = nextRow ? Math.max(0, nextRow.need - points) : 0;
+  return {lv, nextNeed};
+}
+
+
+function recalc(){
+  if (logEl) logEl.textContent = "-";
+  const invMode = (modeSelEl && modeSelEl.value === "inv");
+  const enforceInv = invMode && enforceInvEl.checked;
+
+  const slotConsumers = new Map();
+  const slotActive = new Map();
+  for (const n of NODES){
+    if (n.type==="F") continue;
+    slotConsumers.set(n.id, []);
+    slotActive.set(n.id, false);
+  }
+
+  // duplicates should not exist, but detect anyway
+  const chosen = Object.values(state.flowers).filter(Boolean);
+  const dups = chosen.filter((x,i)=>chosen.indexOf(x)!==i);
+
+  const points = Object.fromEntries(FLOWER_IDS.map(fid=>[fid, Object.fromEntries(ATTRS.map(a=>[a,0])) ]));
+
+  for (const fid of FLOWER_IDS){
+    const dirs = enabledDirsByFlowerLevel(Number(state.flowerLv[fid]||1));
+    const mp = absorbMap.get(fid) || {};
+    for (const [dir, slotId] of Object.entries(mp)){
+      if (!dirs.has(dir)) continue;
+      slotActive.set(slotId, true);
+      slotConsumers.get(slotId)?.push(fid);
+
+      const spec = state.runes[slotId];
+      if (!spec) continue;
+
+      if (spec.kind==="single"){
+        points[fid][spec.attrs[0]] += runeValueSingle(spec.rank, spec.enh);
+      } else {
+        const v = runeValueDouble(spec.rank, spec.enh);
+        points[fid][spec.attrs[0]] += v;
+        points[fid][spec.attrs[1]] += v;
+      }
+    }
+  }
+
+  const job = jobTypeEl.value;
+  const flowerSkillLv = {};
+  const flowerAttrs = {};
+  if (flowerCardsEl) flowerCardsEl.innerHTML = "";
+  let lvSum = 0;
+  let needSum = 0;
+
+  for (const fid of FLOWER_IDS){
+    const fname = state.flowers[fid];
+    const flv = Number(state.flowerLv[fid]||1);
+
+    const card = document.createElement("div");
+    card.className = "fcard";
+
+    if (!fname){
+      flowerSkillLv[fid] = {s1:"-", s2:"-"};
+      flowerAttrs[fid] = {a1:"", a2:""};
+
+      card.innerHTML = `
+        <div class="fcardHead">
+          <div class="fcardTitle">
+            <span class="tag">${fid}</span>
+            <span class="small">(なし)</span>
+          </div>
+          <span class="tag lv">花御Lv ${flv}</span>
+        </div>
+        <div class="small">スキル情報：-</div>
+      `;
+      if (flowerCardsEl) flowerCardsEl.appendChild(card);
+      continue;
+    }
+
+    const master = FLOWERS.find(x=>x.name===fname);
+    const profile = master?.[job];
+    const s1 = profile?.s1 ?? "?";
+    const a1 = profile?.a1 ?? "?";
+    const s2 = profile?.s2 ?? "?";
+    const a2 = profile?.a2 ?? "?";
+    flowerAttrs[fid] = {a1, a2};
+
+    const p1 = points[fid]?.[a1] ?? 0;
+    const p2 = points[fid]?.[a2] ?? 0;
+
+    const lv1 = levelFromPoints(p1, MAIN_REQ);
+    const lv2 = levelFromPoints(p2, SUB_REQ);
+
+    flowerSkillLv[fid] = {s1: String(lv1.lv), s2: String(lv2.lv)};
+
+    lvSum += (lv1.lv + lv2.lv);
+    needSum += (lv1.nextNeed + lv2.nextNeed);
+
+    const next1 = (lv1.nextNeed===0) ? '<span class="ok">到達</span>' : `<span class="warn">${lv1.nextNeed.toFixed(0)}</span>`;
+    const next2 = (lv2.nextNeed===0) ? '<span class="ok">到達</span>' : `<span class="warn">${lv2.nextNeed.toFixed(0)}</span>`;
+
+    card.innerHTML = `
+      <div class="fcardHead">
+        <div class="fcardTitle">
+          <span class="tag">${fid}</span>
+          <span>${fname}（R${master?.rank ?? "?"}）</span>
+        </div>
+        <span class="tag lv">花御Lv ${flv}</span>
+      </div>
+
+      <div class="fgrid">
+        <div class="skillBox">
+          <div>
+            <div class="skillName">${s1} / ${ATTR_EMOJI[a1]??""} ${a1}</div>
+            <div class="skillMeta">Pt: ${p1.toFixed(0)}</div>
+          </div>
+          <div class="skillLv">
+            <div class="big">${lv1.lv}</div>
+            <div class="next">次まで: ${next1}</div>
+          </div>
+        </div>
+
+        <div class="skillBox">
+          <div>
+            <div class="skillName">${s2} / ${ATTR_EMOJI[a2]??""} ${a2}</div>
+            <div class="skillMeta">Pt: ${p2.toFixed(0)}</div>
+          </div>
+          <div class="skillLv">
+            <div class="big">${lv2.lv}</div>
+            <div class="next">次まで: ${next2}</div>
+          </div>
+        </div>
+      </div>
+    `;
+    if (flowerCardsEl) flowerCardsEl.appendChild(card);
+  }
+
+  if (!enforceInv){  } else {
+    const used = new Map();
+    for (const spec of Object.values(state.runes)){
+      const k = runeKey(spec);
+      used.set(k, (used.get(k)||0)+1);
+    }
+    const have = new Map();
+    for (const it of state.inv){
+      const k = runeKey(it);
+      have.set(k, (have.get(k)||0) + it.qty);
+    }
+    const over = [];
+    for (const [k,c] of used.entries()){
+      const h = have.get(k)||0;
+      if (c>h) over.push({k, used:c, have:h});
+    }
+    if (over.length===0){      log("在庫制限：OK（超過なし）");
+    } else {      log("⚠️ 在庫超過あり：");
+      over.forEach(o=>log(`- ${o.k} 使:${o.used} / 持:${o.have}`));
+    }
+  }
+
+
+  // ----- v14.2: Cost aggregation & F0 detail table -----
+  const costByFlower = Object.fromEntries(FLOWER_IDS.map(fid=>[fid,0]));
+  let totalCostUnique = 0;
+  for (const [slotId, active] of slotActive.entries()){
+    if (!active) continue;
+    const spec = state.runes[slotId];
+    if (!spec) continue;
+    const c = runeCost(spec.rank, spec.enh);
+    totalCostUnique += c;
+    const consumers = slotConsumers.get(slotId) || [];
+    for (const fid of consumers){
+      costByFlower[fid] = (costByFlower[fid] || 0) + c;
+    }
+  }
+
+  // Render F0 details (under the board)
+  if (detailTBody){
+    detailTBody.innerHTML = "";
+    const job = jobTypeEl.value;
+    for (const fid of FLOWER_IDS){
+      const fname = state.flowers[fid] || "";
+      if (!fname){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${fid}</td><td class="small">（未選択）</td><td>-</td><td>0</td><td>0</td><td class="grp1">-</td><td>-</td><td>0</td><td>0</td><td>-</td><td>0</td>`;
+        detailTBody.appendChild(tr);
+        continue;
+      }
+      const f = FLOWERS.find(x=>x.name===fname);
+      const profile = (job==="phys") ? f?.phys : f?.mag;
+      const s1 = profile?.s1 ?? "?";
+      const a1 = profile?.a1 ?? "?";
+      const s2 = profile?.s2 ?? "?";
+      const a2 = profile?.a2 ?? "?";
+
+      const p1 = points[fid]?.[a1] ?? 0;
+      const p2 = points[fid]?.[a2] ?? 0;
+      const lv1 = levelFromPoints(p1, MAIN_REQ);
+      const lv2 = levelFromPoints(p2, SUB_REQ);
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="nowrap">${fid}</td>
+        <td class="nowrap">${fname}</td>
+        <td class="nowrap">${s1}</td>
+        <td>${lv1.lv}</td>
+        <td>${p1}</td>
+        <td class="grp1">${lv1.nextNeed===0 ? '<span class="ok">到達</span>' : lv1.nextNeed}</td>
+        <td class="nowrap">${s2}</td>
+        <td>${lv2.lv}</td>
+        <td>${p2}</td>
+        <td>${lv2.nextNeed===0 ? '<span class="ok">到達</span>' : lv2.nextNeed}</td>
+        <td>${costByFlower[fid] || 0}</td>
+      `;
+      detailTBody.appendChild(tr);
+    }
+  }
+  if (totalCostUniqueEl) totalCostUniqueEl.textContent = String(totalCostUnique);
+  if (kpiTotalCostEl) kpiTotalCostEl.textContent = String(totalCostUnique);
+  if (kpiModeEl) kpiModeEl.textContent = (invMode ? "手持ち霊韻のみ" : "自由設計");
+  if (kpiJobEl) kpiJobEl.textContent = (jobTypeEl.value==="phys" ? "物理職" : "魔法職");
+
+  renderRemainTable();
+
+  buildBoard({flowerSkillLv, flowerAttrs, slotConsumers, slotActive});
+  window.requestAnimationFrame(fitBoardToPane);
+}
+
+function exportJson(){
+  const payload = {
+    v:8,
+    jobType: jobTypeEl.value,
+    runeSearch: (runeSearchEl ? runeSearchEl.value : ""),
+    enforceInv: enforceInvEl.checked,
+    flowers: state.flowers,
+    flowerLv: state.flowerLv,
+    runes: state.runes,
+    inv: state.inv,
+  };
+  const blob = new Blob([JSON.stringify(payload,null,2)], {type:"application/json;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "hanami_config_v8.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importJson(){
+  const inp = document.createElement("input");
+  inp.type = "file";
+  inp.accept = ".json,application/json";
+  inp.addEventListener("change", ()=>{
+    const file = inp.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try{
+        const data = JSON.parse(String(reader.result||"{}"));
+        if (data.v !== 8) throw new Error("v8 JSONじゃない");
+        jobTypeEl.value = data.jobType || "phys";
+        if (runeSearchEl) runeSearchEl.value = data.runeSearch || "";
+        enforceInvEl.checked = !!data.enforceInv;
+        state.flowers = data.flowers || state.flowers;
+        state.flowerLv = data.flowerLv || state.flowerLv;
+        state.runes = data.runes || {};
+        state.inv = Array.isArray(data.inv) ? data.inv : [];
+        // sanitize duplicates after import
+        const seen = new Set();
+        for (const fid of FLOWER_IDS){
+          const v = state.flowers[fid];
+          if (!v) continue;
+          if (seen.has(v)) state.flowers[fid] = "";
+          else seen.add(v);
+        }
+        buildInvTable();
+        recalc();
+      }catch(e){
+        alert("JSON読み込み失敗: " + e.message);
+      }
+    };
+    reader.readAsText(file, "utf-8");
+  });
+  inp.click();
+}
+
+document.getElementById("btnAddInv").addEventListener("click", ()=>{
+  const kind = addKindEl.value;
+  const a1 = addA1El.value;
+  const a2 = addA2El.value;
+  const rank = Number(addRankEl.value);
+  const enh = Number(addEnhEl.value);
+  const qty = Math.max(1, Number(addQtyEl.value||1));
+  const spec = (kind==="double") ? {kind:"double", attrs:[a1,a2], rank, enh} : {kind:"single", attrs:[a1], rank, enh};
+  if (spec.kind==="double" && (!a1 || !a2 || a1===a2)) return;
+  const key = runeKey(spec);
+  const found = state.inv.find(it => runeKey(it)===key);
+  if (found){ found.qty = Number(found.qty||0) + qty; }
+  else { state.inv.push({...spec, qty}); }
+  buildInvTable();
+  recalc();
+});
+
+// Inventory section toggle (only in 手持ち霊韻のみ mode)
+if (btnInvToggleEl && invSectionEl){
+  btnInvToggleEl.addEventListener("click", ()=>{
+    if (btnInvToggleEl.disabled) return;
+    invSectionOpen = !invSectionOpen;
+    invSectionEl.style.display = invSectionOpen ? "" : "none";
+    updateInvToggleLabel();
+  });
+}
+
+document.getElementById("btnResetAll").addEventListener("click", ()=>{
+  if (!confirm("花御・霊韻・在庫を全リセットする？")) return;
+  state.flowers = Object.fromEntries(FLOWER_IDS.map(id=>[id,""]));
+  state.flowerLv = Object.fromEntries(FLOWER_IDS.map(id=>[id,9]));
+  state.runes = {};
+  state.inv = [];
+  if (runeSearchEl) runeSearchEl.value = "";
+  buildInvTable();
+  recalc();
+});
+
+document.getElementById("btnExport").addEventListener("click", exportJson);
+document.getElementById("btnImport").addEventListener("click", importJson);
+
+document.getElementById("btnClearRunes").addEventListener("click", ()=>{
+  state.runes = {};
+  recalc();
+});
+document.getElementById("btnClearFlowers").addEventListener("click", ()=>{
+  state.flowers = Object.fromEntries(FLOWER_IDS.map(id=>[id,""]));
+  state.flowerLv = Object.fromEntries(FLOWER_IDS.map(id=>[id,9]));
+  recalc();
+});
+
+jobTypeEl.addEventListener("change", ()=>{ updateAddForm(); buildInvTable(); updateTopbar(); recalc(); });
+if (modeSelEl) modeSelEl.addEventListener("change", ()=>{ syncModeUI(); updateTopbar(); recalc(); });
+enforceInvEl.addEventListener("change", recalc);
+if (runeSearchEl) runeSearchEl.addEventListener("input", ()=>{ recalc(); });
+addKindEl.addEventListener("change", ()=>{ updateAddForm(); });
+addA1El.addEventListener("change", ()=>{ updateAddForm(); });
+function syncModeUI(){
+  const invModeNow = (modeSelEl && modeSelEl.value === "inv");
+
+  // 手持ち霊韻のみモード：インベントリ操作を有効化
+  if (btnInvToggleEl){
+    btnInvToggleEl.disabled = !invModeNow;
+  }
+  if (invSectionEl){
+    invSectionEl.style.display = invModeNow ? (invSectionOpen ? "" : "none") : "none";
+  }
+
+  // 手持ち霊韻のみモードでは在庫制限を常時ON（UIは非表示）
+  if (enforceInvEl){
+    enforceInvEl.checked = invModeNow ? true : false;
+    enforceInvEl.disabled = invModeNow ? true : false;
+  }
+  if (enforceInvWrapEl){
+    enforceInvWrapEl.style.display = "none";
+  }
+
+  // UI更新
+  updateInvToggleLabel();
+  updateRuneOptions();
+  renderRemainTable();
+}
+
+function init(){
+  // Theme toggle (saved in localStorage)
+  try {
+    const saved = localStorage.getItem('hanamiTheme');
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const initial = saved || (prefersDark ? 'dark' : 'light');
+    if (initial === 'dark') document.documentElement.setAttribute('data-theme','dark');
+
+    const refreshThemeLabel = () => {
+      const isDarkNow = document.documentElement.getAttribute('data-theme') === 'dark';
+      if (themeLabelEl) themeLabelEl.textContent = isDarkNow ? 'ダーク' : 'ライト';
+    };
+    refreshThemeLabel();
+
+    if (themeToggleEl){
+      themeToggleEl.addEventListener('click', () => {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        if (isDark){
+          document.documentElement.removeAttribute('data-theme');
+          localStorage.setItem('hanamiTheme','light');
+        } else {
+          document.documentElement.setAttribute('data-theme','dark');
+          localStorage.setItem('hanamiTheme','dark');
+        }
+        refreshThemeLabel();
+      });
+    }
+  } catch(e){ /* ignore */ }
+
+  // Cost参考（モーダル）
+  try {
+    const btnCostRef = document.getElementById("btnCostRef");
+    const costOverlay = document.getElementById("costOverlay");
+    const btnCloseCost = document.getElementById("btnCloseCost");
+
+    function openCostRef(){
+      if (!costOverlay) return;
+      costOverlay.classList.remove("hidden");
+      costOverlay.setAttribute("aria-hidden","false");
+    }
+    function closeCostRef(){
+      if (!costOverlay) return;
+      costOverlay.classList.add("hidden");
+      costOverlay.setAttribute("aria-hidden","true");
+    }
+
+    if (btnCostRef) btnCostRef.addEventListener("click", openCostRef);
+    if (btnCloseCost) btnCloseCost.addEventListener("click", closeCostRef);
+
+    if (costOverlay){
+      costOverlay.addEventListener("click", (e)=>{ if (e.target === costOverlay) closeCostRef(); });
+    }
+    document.addEventListener("keydown", (e)=>{ if (e.key === "Escape") closeCostRef(); });
+  } catch(e){ /* ignore */ }
+
+  updateAddForm();
+  buildInvTable();
+  syncModeUI();
+  recalc();
+
+  // 初期描画直後は横幅が0になる環境があるので、1回だけ再描画
+  setTimeout(() => { try { recalc(); } catch(e){ console.error(e); } }, 0);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  try { init(); } catch(e){ console.error(e); }
+});
+
+window.addEventListener('load', () => {
+  try { recalc(); } catch(e){ console.error(e); }
+});
+
+</script>
+
+  <!-- Cost reference overlay -->
+  <div id="costOverlay" class="overlay hidden" aria-hidden="true">
+    <div class="drawerCard" role="dialog" aria-modal="true" aria-label="Cost参考">
+      <div class="row" style="justify-content:space-between;">
+        <span class="pill">Cost参考</span>
+        <button id="btnCloseCost" type="button" class="btnGhost">閉じる</button>
+      </div>
+      <div class="tableWrap" style="margin-top:10px;">
+        <table>
+          <thead>
+            <tr><th>Rank</th><th>+7 Cost</th><th>+8 Cost</th><th>+9 Cost</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Rank2</td><td>100</td><td>200</td><td>400</td></tr>
+            <tr><td>Rank1</td><td>47</td><td>94</td><td>188</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="hint" style="margin-top:8px;">※必要に応じて参照（常時表示しません）</div>
+    </div>
+  </div>
+
+</body>
+</html>
+
+  
